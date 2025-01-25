@@ -1,3 +1,4 @@
+package com.example.capturethebubble
 import android.content.Intent
 import android.nfc.NfcAdapter
 import android.nfc.Tag
@@ -23,6 +24,9 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        Log.i("TAG","Oncreate Found Intent tag")
+        Log.i("TAG", intent.toString())
+
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         if (nfcAdapter == null) {
             Log.e("NFC", "NFC is not supported on this device.")
@@ -40,17 +44,37 @@ class MainActivity : AppCompatActivity() {
 
         val intent = intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
         val pendingIntent = android.app.PendingIntent.getActivity(this, 0, intent, android.app.PendingIntent.FLAG_MUTABLE)
-        val filters = arrayOf(android.content.IntentFilter(NfcAdapter.ACTION_TAG_DISCOVERED))
+        val filters = arrayOf(android.content.IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED))
         nfcAdapter?.enableForegroundDispatch(this, pendingIntent, filters, null)
+        Log.i("TAG","Starting to listen for tags")
     }
 
     override fun onPause() {
         super.onPause()
         nfcAdapter?.disableForegroundDispatch(this)
+        Log.i("TAG","Pausing tag listening")
     }
 
     override fun onNewIntent(intent: Intent) {
+        Log.i("TAG","Found Intent tag")
+        Log.i("TAG", intent.toString())
         super.onNewIntent(intent)
+
+        Log.d("NFC", "Intent action: ${intent.action}")
+        if (NfcAdapter.ACTION_TECH_DISCOVERED == intent.action) {
+            var data = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_DATA)
+            Log.i("NFC",data.toString())
+        }
+        if (NfcAdapter.ACTION_TAG_DISCOVERED == intent.action) {
+            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+            tag?.let {
+                Log.d("NFC", "Tag detected: ${it.id}")
+                handleTagDetected(it)
+            }
+        } else {
+            Log.e("NFC", "Unexpected intent action: ${intent.action}")
+        }
+
 
         if (NfcAdapter.ACTION_TAG_DISCOVERED == intent.action) {
             val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
