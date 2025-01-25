@@ -24,12 +24,12 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        Log.i("TAG","Oncreate Found Intent tag")
-        Log.i("TAG", intent.toString())
-
-        nfcAdapter = NfcAdapter.getDefaultAdapter(this)
-        if (nfcAdapter == null) {
-            Log.e("NFC", "NFC is not supported on this device.")
+        if (NfcAdapter.ACTION_TECH_DISCOVERED == intent.action) {
+            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
+            tag?.let {
+                Log.d("NFC", "Tag detected: ${it.id}")
+                handleTagDetected(it)
+            }
         }
 
         setContent {
@@ -41,56 +41,19 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-
-        val intent = intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
-        val pendingIntent = android.app.PendingIntent.getActivity(this, 0, intent, android.app.PendingIntent.FLAG_MUTABLE)
-        val filters = arrayOf(android.content.IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED))
-        nfcAdapter?.enableForegroundDispatch(this, pendingIntent, filters, null)
-        Log.i("TAG","Starting to listen for tags")
     }
 
     override fun onPause() {
         super.onPause()
-        nfcAdapter?.disableForegroundDispatch(this)
-        Log.i("TAG","Pausing tag listening")
     }
 
-    override fun onNewIntent(intent: Intent) {
-        Log.i("TAG","Found Intent tag")
-        Log.i("TAG", intent.toString())
-        super.onNewIntent(intent)
-
-        Log.d("NFC", "Intent action: ${intent.action}")
-        if (NfcAdapter.ACTION_TECH_DISCOVERED == intent.action) {
-            var data = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_DATA)
-            Log.i("NFC",data.toString())
-        }
-        if (NfcAdapter.ACTION_TAG_DISCOVERED == intent.action) {
-            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
-            tag?.let {
-                Log.d("NFC", "Tag detected: ${it.id}")
-                handleTagDetected(it)
-            }
-        } else {
-            Log.e("NFC", "Unexpected intent action: ${intent.action}")
-        }
-
-
-        if (NfcAdapter.ACTION_TAG_DISCOVERED == intent.action) {
-            val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
-            tag?.let {
-                handleTagDetected(it)
-            }
-        }
-    }
 
     private fun handleTagDetected(tag: Tag) {
         if (!isTagInProximity.value) {
             isTagInProximity.value = true
             tagHash.value = generateHash(tag.id)
-
-            // Simulate tag removal after a delay using Handler
-            simulateTagRemoval()
+            Log.i("TAG", "HASH")
+            Log.i("TAG", tagHash.value)
         }
     }
 
@@ -100,14 +63,6 @@ class MainActivity : AppCompatActivity() {
         return hashBytes.joinToString("") { "%02x".format(it) }
     }
 
-    private fun simulateTagRemoval() {
-        // Use Handler to post a delayed task on the main thread
-        val handler = Handler(Looper.getMainLooper())
-        handler.postDelayed({
-            isTagInProximity.value = false
-            tagHash.value = ""
-        }, 5000L) // 5 seconds
-    }
 }
 
 @Composable
