@@ -14,6 +14,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import java.security.MessageDigest
+import java.util.Objects
+import android.os.AsyncTask
+import java.net.HttpURLConnection
+import java.net.URL
+import java.io.OutputStream
 
 class MainActivity : AppCompatActivity() {
 
@@ -54,6 +59,8 @@ class MainActivity : AppCompatActivity() {
             tagHash.value = generateHash(tag.id)
             Log.i("TAG", "HASH")
             Log.i("TAG", tagHash.value)
+            sendGetRequest(tagHash.value)
+
         }
     }
 
@@ -61,6 +68,34 @@ class MainActivity : AppCompatActivity() {
         val digest = MessageDigest.getInstance("SHA-256")
         val hashBytes = digest.digest(data)
         return hashBytes.joinToString("") { "%02x".format(it) }
+    }
+
+    fun sendGetRequest(hash: String): String? {
+        val url = "https://capture_the_bubble.letsgo.hs.vc/api/scan/$hash"
+        val urlObj = URL(url)
+        var connection: HttpURLConnection? = null
+        var response: String? = null
+
+        try {
+            connection = urlObj.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 5000 // Set timeout in milliseconds
+            connection.readTimeout = 5000 // Set read timeout in milliseconds
+
+            // Get the response code and handle accordingly
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) { // Success
+                response = connection.inputStream.bufferedReader().readText()
+            } else {
+                response = "Error: $responseCode"
+            }
+        } catch (e: Exception) {
+            response = "Exception: ${e.message}"
+        } finally {
+            connection?.disconnect()
+        }
+
+        return response
     }
 
 }
